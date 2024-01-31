@@ -78,6 +78,9 @@ def extract_function_info(node, source_code, last_comment):
     function_text = ' '.join(tokenize(function_text))
     tokenized_function = tokenize(function_text)
     tokenized_comment = tokenize(comment) if comment else []
+
+    # Get the start line number of the function
+    start_line_number = node.start_point[0] + 1  # Tree-sitter line numbers are 0-indexed
     
     # Traverse the tree starting from the function node
     cursor = node.walk()
@@ -106,7 +109,7 @@ def extract_function_info(node, source_code, last_comment):
                 if not cursor.goto_next_sibling():
                     if not cursor.goto_parent():
                         break    
-    return function_name, parameters, comment, function_text, tokenized_function, tokenized_comment
+    return function_name, parameters, comment, function_text, tokenized_function, tokenized_comment, start_line_number
 
 # Extract information from each function and associate comments with functions
 root_node = tree.root_node
@@ -116,8 +119,9 @@ for node in root_node.children:
     if node.type == 'comment':
         last_comment = code[node.start_byte:node.end_byte].decode('utf8')
     elif node.type == 'function_definition':
-        function_name, parameters, function_comment, function_text, tokenized_function, tokenized_comment = extract_function_info(node, code, last_comment)
+        function_name, parameters, function_comment, function_text, tokenized_function, tokenized_comment, line_number = extract_function_info(node, code, last_comment)
         print(f'Function Name: {function_name}')
+        print(f'Line: {line_number}')
         print(f'Parameters: {parameters}')
         if function_comment:
             print(f'Comments: {function_comment}')
@@ -125,6 +129,6 @@ for node in root_node.children:
         else:
             print('Comments: ')
         print(f'Function Text: {function_text}')
-        print(f'Tokenized Function: {tokenized_function}')
+        print(f'Tokenized Function: {tokenized_function}')        
         print('---')
         last_comment = None  # Reset last_comment after associating it with a function
