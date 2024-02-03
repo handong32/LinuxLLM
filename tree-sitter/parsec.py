@@ -124,8 +124,15 @@ def extract_function_info(node, source_code, last_comment):
                 else:
                     function_name = ''
             elif n.type == 'parameter_list':
-                parameters = [param.text.decode('utf8') for param in n.children if param.type == 'parameter_declaration']
-            
+                # Safely get parameters
+                parameters = []
+                for param in n.children:
+                    if param.type == 'parameter_declaration':
+                        param_name_node = param.child_by_field_name('declarator')
+                        if param_name_node and param_name_node.type == 'identifier':
+                            param_name = param_name_node.text.decode('utf8')
+                            parameters.append(param_name)
+                            
             # Visit children
             if not cursor.goto_first_child():
                 if not cursor.goto_next_sibling():
