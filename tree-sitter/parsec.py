@@ -1,6 +1,8 @@
 import os
 from tree_sitter import Language, Parser
 import sys
+import re
+from packaging import version
 
 # Define the path to the tree-sitter languages and the language you want to use
 LANGUAGE_NAME = 'c'
@@ -45,16 +47,28 @@ parser.set_language(C_LANGUAGE)
 
 # Read C code from a file
 fname = sys.argv[1]
+print(fname)
 with open(f"{fname}", 'rb') as file:
     code = file.read()
 
+lmatch = re.search(r'linux-(.+?)/', fname)
+linuxver=""
+if lmatch:
+    linuxver = lmatch.group(1)
+    if version.parse(linuxver) >= version.parse("2.5"):
+        linuxver="v"+linuxver
+
+pmatch = re.search(r'linux-.*?/(.*)', fname)
+linuxdir=""
+if pmatch:
+    linuxdir = pmatch.group(1)
+            
 # Parse the code
 tree = parser.parse(code)
 
 # Function to tokenize a string (split into words)
 def tokenize(text):
     return text.split()
-
 
 # Function to clean comment text
 def clean_comment_text(comment):
@@ -97,10 +111,18 @@ def extract_function_info(node, source_code, last_comment):
                     break
         else:
             visited.add(n.id)
-            
             # Check the type of the current node
             if n.type == 'function_definition':
-                function_name = n.child_by_field_name('declarator').child_by_field_name('declarator').text.decode('utf8')
+                # Safely get the function name
+                declarator_node = n.child_by_field_name('declarator')
+                if declarator_node:
+                    nested_declarator_node = declarator_node.child_by_field_name('declarator')
+                    if nested_declarator_node and nested_declarator_node.type == 'identifier':
+                        function_name = nested_declarator_node.text.decode('utf8')
+                    else:
+                        function_name = ''
+                else:
+                    function_name = ''
             elif n.type == 'parameter_list':
                 parameters = [param.text.decode('utf8') for param in n.children if param.type == 'parameter_declaration']
             
@@ -121,7 +143,8 @@ for node in root_node.children:
     elif node.type == 'function_definition':
         function_name, parameters, function_comment, function_text, tokenized_function, tokenized_comment, line_number = extract_function_info(node, code, last_comment)
         print(f'Function Name: {function_name}')
-        print(f'Line: {line_number}')
+        #print(f'Line: {line_number}')
+        print(f'Link: https://elixir.bootlin.com/linux/{linuxver}/source/{linuxdir}#L{line_number}')
         print(f'Parameters: {parameters}')
         if function_comment:
             print(f'Comments: {function_comment}')

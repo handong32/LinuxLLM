@@ -1,12 +1,15 @@
 #!/bin/bash
 
-# Function to untar a file
+# Function to untar a file and rename the folder
 untar() {
     local file="$1"
     local target_dir="$2"
+    local folder_name="$(basename "$file" .tar.gz)"
 
-    mkdir -p "$target_dir"
-    tar -xvf "$file" -C "$target_dir"
+    echo "$file $target_dir $folder_name"
+    #mkdir -p "$target_dir"
+    tar -xzf "$file" -C "$target_dir"
+    mv "$target_dir/linux" "$target_dir/$folder_name"
 }
 
 # Function to process directories
